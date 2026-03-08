@@ -1,0 +1,153 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ── Fraunces (display / headings) ── */
+@font-face {
+  font-family: "Fraunces";
+  src: url("/assets/fonts/Fraunces.woff2") format("woff2");
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* ── General Sans (body) ── */
+@font-face {
+  font-family: "General Sans";
+  src: url("/assets/fonts/GeneralSans.woff2") format("woff2");
+  font-weight: 200 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@layer base {
+  :root {
+    --radius: 0.75rem;
+
+    /* Nature palette — forest green, sand, autumn brown */
+    /* Background: warm parchment */
+    --background: 0.965 0.018 78;
+    /* Foreground: deep forest brown */
+    --foreground: 0.22 0.04 60;
+
+    /* Card: creamy white with warm tint */
+    --card: 0.985 0.012 80;
+    --card-foreground: 0.22 0.04 60;
+
+    /* Popover */
+    --popover: 0.985 0.012 80;
+    --popover-foreground: 0.22 0.04 60;
+
+    /* Primary: deep forest green */
+    --primary: 0.38 0.10 145;
+    --primary-foreground: 0.98 0.01 90;
+
+    /* Secondary: warm sand yellow */
+    --secondary: 0.88 0.06 85;
+    --secondary-foreground: 0.22 0.04 60;
+
+    /* Muted: light sand */
+    --muted: 0.92 0.025 80;
+    --muted-foreground: 0.50 0.04 70;
+
+    /* Accent: autumn brown-orange */
+    --accent: 0.70 0.12 55;
+    --accent-foreground: 0.98 0.01 90;
+
+    /* Destructive */
+    --destructive: 0.577 0.245 27.325;
+    --destructive-foreground: 0.985 0 0;
+
+    /* Border: warm beige */
+    --border: 0.84 0.04 75;
+    --input: 0.84 0.04 75;
+    --ring: 0.38 0.10 145;
+
+    /* Chart colors: nature-inspired */
+    --chart-1: 0.38 0.10 145;   /* forest green */
+    --chart-2: 0.70 0.12 55;    /* autumn brown */
+    --chart-3: 0.78 0.14 85;    /* golden yellow */
+    --chart-4: 0.55 0.10 165;   /* moss green */
+    --chart-5: 0.65 0.15 35;    /* rust orange */
+
+    --sidebar: 0.945 0.022 78;
+    --sidebar-foreground: 0.22 0.04 60;
+    --sidebar-primary: 0.38 0.10 145;
+    --sidebar-primary-foreground: 0.98 0.01 90;
+    --sidebar-accent: 0.88 0.06 85;
+    --sidebar-accent-foreground: 0.22 0.04 60;
+    --sidebar-border: 0.84 0.04 75;
+    --sidebar-ring: 0.38 0.10 145;
+
+    /* Custom nature tokens */
+    --forest-green: 0.38 0.10 145;
+    --forest-light: 0.55 0.10 145;
+    --sand-yellow: 0.88 0.06 85;
+    --autumn-brown: 0.45 0.10 55;
+    --parchment: 0.965 0.018 78;
+    --leaf-gold: 0.78 0.14 85;
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground font-body;
+    background-image:
+      radial-gradient(ellipse at 10% 20%, oklch(0.88 0.06 145 / 0.15) 0%, transparent 50%),
+      radial-gradient(ellipse at 85% 80%, oklch(0.88 0.06 55 / 0.12) 0%, transparent 45%);
+    background-attachment: fixed;
+  }
+
+  h1, h2, h3, h4 {
+    @apply font-display;
+  }
+}
+
+/* ── Custom utility classes ── */
+@layer utilities {
+  .text-forest { color: oklch(var(--forest-green)); }
+  .text-autumn { color: oklch(var(--autumn-brown)); }
+  .bg-forest { background-color: oklch(var(--forest-green)); }
+  .bg-sand { background-color: oklch(var(--sand-yellow)); }
+  .bg-parchment { background-color: oklch(var(--parchment)); }
+  .border-forest { border-color: oklch(var(--forest-green)); }
+
+  .nature-card {
+    background: oklch(var(--card));
+    border: 1px solid oklch(var(--border));
+    border-radius: var(--radius);
+    box-shadow: 0 2px 8px oklch(0.38 0.06 55 / 0.08), 0 1px 2px oklch(0.38 0.06 55 / 0.06);
+  }
+
+  .star-rating-container {
+    display: flex;
+    gap: 0.25rem;
+  }
+
+  .star-icon {
+    cursor: pointer;
+    transition: transform 0.15s ease, color 0.15s ease;
+  }
+
+  .star-icon:hover {
+    transform: scale(1.2);
+  }
+}
+
+/* ── Smooth scrollbar ── */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: oklch(var(--muted));
+}
+::-webkit-scrollbar-thumb {
+  background: oklch(var(--forest-green) / 0.4);
+  border-radius: 999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: oklch(var(--forest-green) / 0.7);
+}

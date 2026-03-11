@@ -7,12 +7,12 @@ import Text "mo:core/Text";
 import Order "mo:core/Order";
 import Runtime "mo:core/Runtime";
 import Iter "mo:core/Iter";
-import Migration "migration";
+
 import Principal "mo:core/Principal";
 import MixinAuthorization "authorization/MixinAuthorization";
 import AccessControl "authorization/access-control";
 
-(with migration = Migration.run)
+
 actor {
   let accessControlState = AccessControl.initState();
   include MixinAuthorization(accessControlState);
@@ -95,6 +95,79 @@ actor {
   func compareByTimestamp(a : FeedbackEntry, b : FeedbackEntry) : Order.Order {
     Int.compare(a.timestamp, b.timestamp);
   };
+
+  // --- Auto-seed activiteiten bij eerste installatie ---
+  func seedActivitiesIfEmpty() {
+    if (activities.size() == 0) {
+      let activityData = [
+        ("Klavertje Vier", "2de leerjaar", "Natuurpiramide & Netelchips", "Introductie van de natuurpiramide en zelf chips maken van geoogste brandnetels."),
+        ("Klavertje Vier", "2de leerjaar", "Herfstcyclus & Pesto", "Onderzoek naar bladafbraak door bodemdiertjes en samen verse herfstpesto maken."),
+        ("Klavertje Vier", "2de leerjaar", "Moestuin winterklaar", "De bodem voorbereiden op de rustperiode met compost en het 'verstoppertje' van eekhoorns naspelen."),
+        ("Klavertje Vier", "2de leerjaar", "Vogelvoerbakjes maken", "Leren hoe vogels overleven in de kou en zelf voederbakjes knutselen van sinaasappels en zaden. Ook bestudeerde we de vroege bloei van de hazelaar."),
+        ("Klavertje Vier", "2de leerjaar", "Leven onder de grond & Boomknoppen", "Bodemonderzoek naar regenwormen en humus, plus boomknoppen afdrukken in klei."),
+        ("Klavertje Vier", "2de leerjaar", "Winterschatten & Stekken", "Experimenteren met natuurlijke plantenverf en een eigen kruidenstekje planten in een potje."),
+        ("Klavertje Vier", "2de leerjaar", "Wakker Water & Papierpotjes", "Kiemende zaden zoeken onder bladeren en zelf afbreekbare potjes vouwen van krantenpapier."),
+        ("Klavertje Vier", "2de leerjaar", "De Levenscyclus & Spinazie", "De fases van zaadje tot plant sorteren, spinazie zaaien en popcorn maken met tuinkruiden."),
+      ];
+
+      for ((school, targetClass, name, description) in activityData.vals()) {
+        let activity : Activity = {
+          id = nextActivityId;
+          school;
+          targetClass;
+          name;
+          description;
+        };
+        activities.add(nextActivityId, activity);
+        nextActivityId += 1;
+      };
+    };
+  };
+
+  func seedQuestionsIfEmpty() {
+    if (questions.size() == 0) {
+      let questionData = [
+        (
+          "Pedagogische Aansluiting",
+          "Hoe goed sloot het traject aan bij de leefwereld en het niveau van de leerlingen?",
+        ),
+        (
+          "Interactie & Methodiek",
+          "Was er doorheen het jaar een goede balans tussen observatie en actie?",
+        ),
+        (
+          "Zintuiglijke Beleving",
+          "In welke mate werden de zintuigen van de leerlingen geprikkeld?",
+        ),
+        (
+          "Kennisoverdracht",
+          "Hoe effectief werd de natuurkennis (kringloop, biodiversiteit) overgebracht doorheen het traject?",
+        ),
+        (
+          "Versterking leerdoelen",
+          "In hoeverre zijn de gestelde doelen/leerresultaten daadwerkelijk bereikt?",
+        ),
+        (
+          "Thematische integratie",
+          "Hoe goed werden nieuwe thema's/activiteiten geïntegreerd in het bestaande lessenpakket?",
+        ),
+      ];
+
+      for ((title, description) in questionData.vals()) {
+        let question : Question = {
+          id = nextQuestionId;
+          title;
+          description;
+        };
+        questions.add(nextQuestionId, question);
+        nextQuestionId += 1;
+      };
+    };
+  };
+
+  // Auto-seed on first install
+  seedActivitiesIfEmpty();
+  seedQuestionsIfEmpty();
 
   // --- Admin Session Management ---
   func generateToken() : Text {
@@ -199,15 +272,15 @@ actor {
   };
 
   public query func getAllFeedback(token : Text) : async [FeedbackEntry] {
-    switch (sessions.get(token)) {
-      case (null) { Runtime.trap("Unauthorized: Invalid session token") };
-      case (?expiry) {
-        if (Time.now() >= expiry) {
-          Runtime.trap("Unauthorized: Session expired");
-        };
-      };
+    if (not checkSessionValid(token)) {
+      Runtime.trap("Unauthorized: Invalid or expired session token");
     };
     feedbackEntries.values().toArray();
+  };
+
+  public shared func deleteFeedback(token : Text, id : Nat) : async () {
+    checkSession(token);
+    feedbackEntries.remove(id);
   };
 
   public query func getFeedbackBySchool(school : Text) : async [FeedbackEntry] {
@@ -449,73 +522,11 @@ actor {
     activities.get(id);
   };
 
-  // --- Seed Data ---
+  // --- Seed Data (manual trigger from admin) ---
   public shared func seedInitialData(token : Text) : async () {
     checkSession(token);
-
-    // Only seed if no questions exist
-    if (questions.size() == 0) {
-      let questionData = [
-        (
-          "Pedagogische Aansluiting",
-          "Hoe goed sloot het traject aan bij de leefwereld en het niveau van de leerlingen?",
-        ),
-        (
-          "Interactie & Methodiek",
-          "Was er doorheen het jaar een goede balans tussen observatie en actie?",
-        ),
-        (
-          "Zintuiglijke Beleving",
-          "In welke mate werden de zintuigen van de leerlingen geprikkeld?",
-        ),
-        (
-          "Kennisoverdracht",
-          "Hoe effectief werd de natuurkennis (kringloop, biodiversiteit) overgebracht doorheen het traject?",
-        ),
-        (
-          "Versterking leerdoelen",
-          "In hoeverre zijn de gestelde doelen/leerresultaten daadwerkelijk bereikt?",
-        ),
-        (
-          "Thematische integratie",
-          "Hoe goed werden nieuwe thema's/activiteiten geïntegreerd in het bestaande lessenpakket?",
-        ),
-      ];
-
-      for ((title, description) in questionData.vals()) {
-        let question : Question = {
-          id = nextQuestionId;
-          title;
-          description;
-        };
-        questions.add(nextQuestionId, question);
-        nextQuestionId += 1;
-      };
-    };
-
-    // Seed activities if empty
-    if (activities.size() == 0) {
-      let activityData = [
-        ("Klavertje Vier", "Groep 1-2", "Seizoenstafel", "Natuurlijke materialen verzamelen en ordenen per seizoen"),
-        ("Klavertje Vier", "Groep 3-4", "Insectenhotel bouwen", "Samen een insectenhotel maken voor de schooltuin"),
-        ("Droomboom", "Groep 5-6", "Composteren", "Leren over de kringloop door compost te maken"),
-        ("Droomboom", "Groep 7-8", "Biodiversiteit onderzoek", "Soorten tellen en documenteren in de omgeving"),
-        ("Leidstar", "Groep 1-2", "Vogelhuisjes", "Vogelhuisjes maken en ophangen"),
-        ("Leidstar", "Groep 3-4", "Moestuin", "Groenten kweken in de schoolmoestuin"),
-      ];
-
-      for ((school, targetClass, name, description) in activityData.vals()) {
-        let activity : Activity = {
-          id = nextActivityId;
-          school;
-          targetClass;
-          name;
-          description;
-        };
-        activities.add(nextActivityId, activity);
-        nextActivityId += 1;
-      };
-    };
+    seedQuestionsIfEmpty();
+    seedActivitiesIfEmpty();
   };
 
   // Private helper to validate score

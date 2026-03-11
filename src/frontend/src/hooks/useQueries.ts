@@ -409,6 +409,18 @@ export function useDeleteActivity() {
   });
 }
 
+export function useDeleteFeedback() {
+  const { actor } = useActor();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (params: { token: string; id: bigint }) => {
+      if (!actor) throw new Error("Actor not available");
+      await actor.deleteFeedback(params.token, params.id);
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["allFeedback"] }),
+  });
+}
+
 export function useChangeAdminPassword() {
   const { actor } = useActor();
   return useMutation({

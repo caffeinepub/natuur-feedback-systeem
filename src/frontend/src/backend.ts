@@ -147,6 +147,7 @@ export interface backendInterface {
     assignCallerUserRole(user: Principal, role: UserRole): Promise<void>;
     changeAdminPassword(token: string, newUsername: string, newPassword: string): Promise<boolean>;
     deleteActivity(token: string, id: bigint): Promise<void>;
+    deleteFeedback(token: string, id: bigint): Promise<void>;
     deleteContextExample(token: string, id: bigint): Promise<void>;
     deleteQuestion(token: string, id: bigint): Promise<void>;
     getActivitiesBySchoolAndClass(school: string, targetClass: string): Promise<Array<Activity>>;
@@ -302,6 +303,20 @@ export class Backend implements backendInterface {
             }
         } else {
             const result = await this.actor.deleteActivity(arg0, arg1);
+            return result;
+        }
+    }
+    async deleteFeedback(arg0: string, arg1: bigint): Promise<void> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.deleteFeedback(arg0, arg1);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.deleteFeedback(arg0, arg1);
             return result;
         }
     }

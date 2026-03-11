@@ -64,6 +64,7 @@ export interface backendInterface {
     assignCallerUserRole(user: Principal, role: UserRole): Promise<void>;
     changeAdminPassword(token: string, newUsername: string, newPassword: string): Promise<boolean>;
     deleteActivity(token: string, id: bigint): Promise<void>;
+    deleteFeedback(token: string, id: bigint): Promise<void>;
     deleteContextExample(token: string, id: bigint): Promise<void>;
     deleteQuestion(token: string, id: bigint): Promise<void>;
     getActivitiesBySchoolAndClass(school: string, targetClass: string): Promise<Array<Activity>>;

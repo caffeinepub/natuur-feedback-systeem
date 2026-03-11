@@ -73,6 +73,7 @@ import {
   useChangeAdminPassword,
   useDeleteActivity,
   useDeleteContextExample,
+  useDeleteFeedback,
   useDeleteQuestion,
   useSeedInitialData,
   useUpdateActivity,
@@ -120,6 +121,25 @@ function getScores(entry: FeedbackEntry) {
     Number(entry.sensoryExperience),
     Number(entry.knowledgeTransfer),
   ];
+}
+
+// ── Auth error helper ─────────────────────────────────────────────────────────
+function handleAuthError(
+  err: unknown,
+  onAuthError: () => void,
+  fallbackMsg: string,
+) {
+  const msg = String(err);
+  if (
+    msg.includes("Unauthorized") ||
+    msg.includes("session") ||
+    msg.includes("Invalid") ||
+    msg.includes("401")
+  ) {
+    onAuthError();
+  } else {
+    toast.error(fallbackMsg);
+  }
 }
 
 // ── Statistics Tab ────────────────────────────────────────────────────────────
@@ -287,12 +307,27 @@ function StatisticsTab({ feedback }: { feedback: FeedbackEntry[] }) {
 
 // ── Feedback Overview Tab ─────────────────────────────────────────────────────
 
-function FeedbackTab({ token }: { token: string }) {
+function FeedbackTab({
+  token,
+  onAuthError,
+}: { token: string; onAuthError: () => void }) {
   const [schoolFilter, setSchoolFilter] = useState("all");
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
 
   const allFeedbackQuery = useAllFeedback(token);
+  const deleteFeedback = useDeleteFeedback();
+
+  const handleDeleteFeedback = async (id: bigint) => {
+    if (!confirm("Weet je zeker dat je deze feedback wilt verwijderen?"))
+      return;
+    try {
+      await deleteFeedback.mutateAsync({ token, id });
+      toast.success("Feedback verwijderd.");
+    } catch (err) {
+      handleAuthError(err, onAuthError, "Verwijderen mislukt.");
+    }
+  };
 
   const filteredFeedback = (() => {
     let data = allFeedbackQuery.data ?? [];
@@ -438,6 +473,7 @@ function FeedbackTab({ token }: { token: string }) {
                   <TableHead className="text-center">Ken.</TableHead>
                   <TableHead>Impact-moment</TableHead>
                   <TableHead>Datum</TableHead>
+                  <TableHead />
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -465,6 +501,35 @@ function FeedbackTab({ token }: { token: string }) {
                     <TableCell className="text-sm whitespace-nowrap">
                       {formatDate(entry.timestamp)}
                     </TableCell>
+                    <TableCell>
+                      <button
+                        type="button"
+                        data-ocid={`admin.feedback.delete_button.${i + 1}`}
+                        onClick={() => handleDeleteFeedback(entry.id)}
+                        className="text-red-500 hover:text-red-700 hover:bg-red-50 rounded p-1 transition-colors"
+                        title="Verwijder feedback"
+                      >
+                        <svg
+                          aria-label="Verwijder feedback"
+                          role="img"
+                          xmlns="http://www.w3.org/2000/svg"
+                          width="16"
+                          height="16"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        >
+                          <polyline points="3 6 5 6 21 6" />
+                          <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+                          <path d="M10 11v6" />
+                          <path d="M14 11v6" />
+                          <path d="M9 6V4h6v2" />
+                        </svg>
+                      </button>
+                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -478,7 +543,10 @@ function FeedbackTab({ token }: { token: string }) {
 
 // ── Questions Management Tab ───────────────────────────────────────────────────
 
-function QuestionsTab({ token }: { token: string }) {
+function QuestionsTab({
+  token,
+  onAuthError,
+}: { token: string; onAuthError: () => void }) {
   const { data: questions, isLoading: qLoading } = useAllQuestions();
   const { data: examples, isLoading: exLoading } = useAllContextExamples();
 
@@ -521,8 +589,8 @@ function QuestionsTab({ token }: { token: string }) {
       });
       setEditingQ(null);
       toast.success("Vraag bijgewerkt.");
-    } catch {
-      toast.error("Fout bij bijwerken.");
+    } catch (err) {
+      handleAuthError(err, onAuthError, "Fout bij bijwerken.");
     }
   };
 
@@ -531,8 +599,8 @@ function QuestionsTab({ token }: { token: string }) {
     try {
       await deleteQuestion.mutateAsync({ token, id });
       toast.success("Vraag verwijderd.");
-    } catch {
-      toast.error("Fout bij verwijderen.");
+    } catch (err) {
+      handleAuthError(err, onAuthError, "Fout bij verwijderen.");
     }
   };
 
@@ -546,8 +614,8 @@ function QuestionsTab({ token }: { token: string }) {
       setNewQ({ title: "", description: "" });
       setShowNewQ(false);
       toast.success("Vraag toegevoegd.");
-    } catch {
-      toast.error("Fout bij toevoegen.");
+    } catch (err) {
+      handleAuthError(err, onAuthError, "Fout bij toevoegen.");
     }
   };
 
@@ -557,8 +625,8 @@ function QuestionsTab({ token }: { token: string }) {
       await updateExample.mutateAsync({ token, ...editingEx });
       setEditingEx(null);
       toast.success("Voorbeeld bijgewerkt.");
-    } catch {
-      toast.error("Fout bij bijwerken.");
+    } catch (err) {
+      handleAuthError(err, onAuthError, "Fout bij bijwerken.");
     }
   };
 
@@ -567,8 +635,8 @@ function QuestionsTab({ token }: { token: string }) {
     try {
       await deleteExample.mutateAsync({ token, id });
       toast.success("Voorbeeld verwijderd.");
-    } catch {
-      toast.error("Fout bij verwijderen.");
+    } catch (err) {
+      handleAuthError(err, onAuthError, "Fout bij verwijderen.");
     }
   };
 
@@ -582,8 +650,8 @@ function QuestionsTab({ token }: { token: string }) {
       setNewEx({ school: "", targetClass: "", exampleText: "" });
       setShowNewEx(false);
       toast.success("Voorbeeld toegevoegd.");
-    } catch {
-      toast.error("Fout bij toevoegen.");
+    } catch (err) {
+      handleAuthError(err, onAuthError, "Fout bij toevoegen.");
     }
   };
 
@@ -989,7 +1057,10 @@ function QuestionsTab({ token }: { token: string }) {
 
 // ── Activities Tab ────────────────────────────────────────────────────────────
 
-function ActivitiesTab({ token }: { token: string }) {
+function ActivitiesTab({
+  token,
+  onAuthError,
+}: { token: string; onAuthError: () => void }) {
   const { data: activities, isLoading: actLoading } = useAllActivities();
 
   const addActivity = useAddActivity();
@@ -1021,8 +1092,8 @@ function ActivitiesTab({ token }: { token: string }) {
       setNewAct({ school: "", targetClass: "", name: "", description: "" });
       setShowNewAct(false);
       toast.success("Activiteit toegevoegd.");
-    } catch {
-      toast.error("Fout bij toevoegen.");
+    } catch (err) {
+      handleAuthError(err, onAuthError, "Fout bij toevoegen.");
     }
   };
 
@@ -1032,8 +1103,8 @@ function ActivitiesTab({ token }: { token: string }) {
       await updateActivity.mutateAsync({ token, ...editingAct });
       setEditingAct(null);
       toast.success("Activiteit bijgewerkt.");
-    } catch {
-      toast.error("Fout bij bijwerken.");
+    } catch (err) {
+      handleAuthError(err, onAuthError, "Fout bij bijwerken.");
     }
   };
 
@@ -1043,8 +1114,8 @@ function ActivitiesTab({ token }: { token: string }) {
     try {
       await deleteActivity.mutateAsync({ token, id });
       toast.success("Activiteit verwijderd.");
-    } catch {
-      toast.error("Fout bij verwijderen.");
+    } catch (err) {
+      handleAuthError(err, onAuthError, "Fout bij verwijderen.");
     }
   };
 
@@ -1561,6 +1632,14 @@ export default function AdminDashboard() {
     }
   }, [questions, questionsLoading, seeded, seedMutation, token]);
 
+  const handleAuthError_ = () => {
+    toast.error("Sessie verlopen. Opnieuw inloggen...");
+    clearToken();
+    setTimeout(() => {
+      navigate({ to: "/admin/login" });
+    }, 1500);
+  };
+
   const handleLogout = async () => {
     if (token) {
       try {
@@ -1694,15 +1773,15 @@ export default function AdminDashboard() {
           </TabsContent>
 
           <TabsContent value="feedback">
-            <FeedbackTab token={token} />
+            <FeedbackTab token={token} onAuthError={handleAuthError_} />
           </TabsContent>
 
           <TabsContent value="questions">
-            <QuestionsTab token={token} />
+            <QuestionsTab token={token} onAuthError={handleAuthError_} />
           </TabsContent>
 
           <TabsContent value="activities">
-            <ActivitiesTab token={token} />
+            <ActivitiesTab token={token} onAuthError={handleAuthError_} />
           </TabsContent>
 
           <TabsContent value="settings">
